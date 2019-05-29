@@ -9,40 +9,53 @@ def read(path):
     with open(path) as f:
         return json.loads(f.read())
 
-def convert(data, columns):
-    def extra(key):
-        return tc.SArray([d[key] for d in data])
-    return tc.SFrame(dict(zip(columns, map(extra, columns))))
+def transform_bbox(bbox):
+    width = bbox[2]
+    height = bbox[3]
+    x = bbox[0] + width/2
+    y = bbox[1] + height/2
+    return { 'x': x, 'y': y, 'width': width, 'height': height }
 
-def make_images(path, metadata, bboxes):
-    imgs = dict([(i['id'], (tc.Image(path + '/' + i['file_name']), i['file_name'])) for i in metadata])
+def import_annotations(images, annotations):
+    a = []
+    for _ in range(len(images)):
+        a.append([])
 
-    images = map(lambda img_id: imgs[img_id][0], bboxes['image_id'])
-    paths = map(lambda img_id: imgs[img_id][1], bboxes['image_id'])
+    for annotation in annotations:
+        if annotation['ignore'] == '1':
+            continue
+        print(f'processing image id: {annotation["image_id"]}')
+        bbox = transform_bbox(annotation['bbox'])
+        img_id = int(annotation['image_id']) 
+        a[img_id - 1].append({ 'coordinates': bbox, 'label': 'bottle' })
 
-    return (tc.SArray(images), tc.SArray(paths))
+    return tc.SArray(a)
 
-def extra_bboxes(bboxes):
-    print(bboxes[0])
-    def t(bbox):
-        x = bbox[0] - bbox[2]/2
-        y = bbox[1] - bbox[3]/2
-        width = bbox[2]
-        height = bbox[3]
-        return {'coordinates': {'x': x, 'y': y, 'width': width, 'height': height }, 'label': 'trash'}
-    return tc.SArray(list(map(t, bboxes)))
+def path_for_image_name(name):
+    return os.path.dirname(dataset_dir) + '/' + name
+
+def import_images(images):
+    images = sorted(images, key=lambda img: img['id'])
+    image_ids = [i['id'] for i in images]
+    file_name = [i['file_name'] for i in images]
+    imgs = [tc.Image(path_for_image_name(i['file_name'])) for i in images]
+    return tc.SFrame( {
+        'id': tc.SArray(image_ids),
+        'file_name': tc.SArray(file_name),
+        'image': tc.SArray(imgs)
+        })
 
 if __name__=='__main__':
     if len(sys.argv) == 3:
         path = sys.argv[1]
         data = read(path)
+        dataset_dir = path
 
-        image_metadata = convert(data['images'], ['file_name', 'id'])
-        bboxes = convert(data['annotations'], ['area', 'image_id', 'bbox', 'id', 'ignore'])
-        images, paths = make_images(os.path.dirname(path), image_metadata, bboxes)
+        images = import_images(data['images'])
+        annotations = import_annotations(images, data['annotations'])
+        frames = images.add_column(annotations, 'annotations')
+        frames.save(sys.argv[2])
 
-        bbboxes = extra_bboxes(bboxes['bbox'])
-        frames = bboxes.add_column(images, 'images').add_column(paths, 'file_name').add_column(bbboxes, 'annotation')
     else:
         print(f"error: invalid command")
         print(f"{sys.argv[0]}: <path to dataset.json> <sframes output dir>")
