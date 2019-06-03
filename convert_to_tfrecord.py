@@ -75,8 +75,8 @@ images = data['images']
 id_ = None
 this = []
 for annot in data['annotations']:
-    if annot['id'] != id_:
-        id_ = annot['id']
+    if annot['image_id'] != id_:
+        id_ = annot['image_id']
         if this:
             examples.append(create_tf_example(data['images'][id_-1], this))
             this = []
