@@ -3,6 +3,7 @@
 import sys
 import os
 import re
+import json
 import image_labeller as model2
 
 def warn(*args, **kwargs):
@@ -10,6 +11,31 @@ def warn(*args, **kwargs):
 
 import warnings
 warnings.warn = warn
+
+def get_labels_from_json(paths, jsonfile):
+    with open(jsonfile) as f:
+        data = json.loads(f.read())
+    dataset_dir = './datasets/512x384/'
+    examples = []
+    images = data['images']
+    def get_bounds(annotation):
+        seg = annotation['segmentation']
+        return seg[0], seg[1], seg[4], seg[5]
+    this = []
+    id_ = None
+    bboxes = {}
+    for annot in data['annotations']:
+        if annot['ignore'] == 1:
+            print('ignore')
+            continue
+        if annot['image_id'] != id_:
+            if this:
+                bboxes[images[id_-1]] = annot
+            this = [get_bounds(annot)]
+            id_ = annot['image_id']
+        else:
+            this.append(get_bounds(annot))
+    return [bboxes[os.path.basename(path)] for path in paths]
 
 def predict_model_A(img_paths):
     print('turicreate')
@@ -43,6 +69,15 @@ def predict_model_B(dirs):
     #input_files, output_dirs = dirs
     for file, d in dirs.transpose():
         model2.label(file, d)
+
+
+def compute_predictions_model_B(paths):
+    return [model2.return_predictions(file) for file in paths]
+
+
+def get_labels_model_B(paths):
+    return get_labels_from_json(paths, './datasets/512x384/dataset.json')
+        
     
 def intersection_over_union(boxA, boxB):
     # https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/

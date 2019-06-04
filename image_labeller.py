@@ -68,4 +68,29 @@ def label(filename, outfile):
         print('done!')
     else:
         print('Invalid file path.')
+
+def return_predictions(filename):
+    image = cv2.imread(filename)
+    image_expanded = np.expand_dims(image, axis=0)
+    # Perform the actual detection by running the model with the image as input
+    (boxes, scores, classes, num) = sess.run(
+        [detection_boxes, detection_scores, detection_classes, num_detections],
+        feed_dict={image_tensor: image_expanded})
+    width, height, depth = image.shape
+    ymins = []
+    xmins = []
+    ymaxs = []
+    xmaxs = []
+    for score, bbox in zip(scores[0], boxes[0]):
+        if score > 0.6:
+            ymin, xmin, ymax, xmax = bbox
+            ymin *= height
+            ymax *= height
+            xmin *= width
+            xmax *= width
+            ymins.append(ymin)
+            xmins.append(xmin)
+            ymaxs.append(ymax)
+            xmaxs.append(xmax)
+    return zip(ymins, xmins, ymaxs, xmaxs)
     
