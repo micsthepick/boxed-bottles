@@ -45,12 +45,14 @@ def create_tf_example(image, annotations):
 
     for annot in annotations:
         x_min, x_max, y_min, y_max = transform_bbox(*annot['segmentation'])
-        if image['id'] == 223:
-            print(x_min, x_max, y_min, y_max)
-        xmins.append(x_min/width)
-        xmaxs.append(x_max/width)
-        ymins.append(y_min/height)
-        ymaxs.append(y_max/height)
+        x_min /= width
+        x_max /= width
+        y_min /= height
+        y_max /= height
+        xmins.append(max(0, x_min))
+        xmaxs.append(min(1, x_max))
+        ymins.append(max(0, y_min))
+        ymaxs.append(min(1, y_max))
         classes_text.append(b'bottle')
         classes.append(1)
 
@@ -90,12 +92,7 @@ for annot in data['annotations']:
             examples.append(create_tf_example(data['images'][id_-1], this))
         this = [annot]
         id_ = annot['image_id']
-        if id_ == 223:
-            print(annot)
-            print(data['images'][id_-1])
     else:
-        if id_ == 223:
-            print(annot)
         this.append(annot)
 
 rand = list(examples)
