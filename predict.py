@@ -1,6 +1,9 @@
 #!/usr/local/bin/python3
-import turicreate as tc
+#import turicreate as tc
 import sys
+import os
+import re
+import image_labeller as model2
 
 def warn(*args, **kwargs):
     pass
@@ -36,6 +39,11 @@ def predict_model_A(img_paths):
     for record in ddata:
         record['label'].save(record['output'])
 
+def predict_model_B(dirs):
+    #input_files, output_dirs = dirs
+    for file, d in dirs.transpose():
+        model2.label(file, d)
+    
 def intersection_over_union(boxA, boxB):
     # https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/
 	# determine the (x, y)-coordinates of the intersection rectangle
@@ -59,9 +67,6 @@ def intersection_over_union(boxA, boxB):
  
 	# return the intersection over union value
 	return iou 
-
-def predict_model_B(input_img, output_img):
-    print('tensorflow')
 
 def main(model_path, data_path):
     model = tc.load_model(model_path)
