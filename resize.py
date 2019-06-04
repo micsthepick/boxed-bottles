@@ -6,8 +6,8 @@ from glob import glob
 from PIL import Image, ExifTags
 from sys import exit
 
-output_folder = getcwd() + "datasets/resized/"
-size = (512, 384)
+output_folder = getcwd() + "/datasets/resized/"
+size = (1024, 768)
 
 if not exists(output_folder):
     mkdir(output_folder)
@@ -30,21 +30,21 @@ def generate_thumbnail(path, new_path, size):
         elif exif[orientation] == 8:
             image=image.rotate(90, expand=True)
 
-        image.thumbnail(size, Image.ANTIALIAS)
+        image.thumbnail(size, Image.LANCZOS) #ANTIALIAS)
         image.save(new_path)
         image.close()
     except (AttributeError, KeyError, IndexError):
         # cases: image don't have getexif
         pass
-
-for path in glob(getcwd() + "Photos/Bottles/**/*.JPG"):
-    if output_folder in path:
-        continue
-    print(f"processing: {relpath(path)}")
-    new_path = rename(path)
-    if exists(new_path):
-        print("error: would over write path")
-        print(f"path: {relpath(new_path)}")
-        exit(-1)
-    generate_thumbnail(path, new_path, size)
-    print(f"thumbdnail generate at: {relpath(new_path)}")
+if __name__=='__main__':
+    for path in glob(getcwd() + "/Photos/Bottles/MichaelasBottles/*.JPG"):
+        if output_folder in path:
+            continue
+        print(f"processing: {relpath(path)}")
+        new_path = rename(path)
+        if exists(new_path):
+            print("error: would over write path")
+            print(f"path: {relpath(new_path)}")
+            exit(-1)
+        generate_thumbnail(path, new_path, size)
+        print(f"thumbdnail generate at: {relpath(new_path)}")
