@@ -1,6 +1,9 @@
 #!/usr/local/bin/python3
-import turicreate as tc
+#import turicreate as tc
 import sys
+import os
+import re
+import image_labeller as model2
 
 def warn(*args, **kwargs):
     pass
@@ -36,8 +39,12 @@ def predict_model_A(img_paths):
     for record in ddata:
         record['label'].save(record['output'])
 
-def predict_model_B(input_img, output_img):
-    print('tensorflow')
+def predict_model_B(dirs):
+    #input_files, output_dirs = dirs
+    print(dirs.shape)
+    for file, d in dirs.transpose():
+        model2.label(file, d)
+    
 
 def main(model_path, data_path):
     model = tc.load_model(model_path)
