@@ -54,15 +54,28 @@ def metrics(args):
 
     use_model_a = algor == 'tc' or algor == 'turicreate'
     compute_predictions = models.compute_predictions_model_A if use_model_a else models.compute_predictions_model_B
+    get_labels = models.get_labels_model_A if use_model_a else models.get_labels_model_B
 
     imgs = list(filetr(pngOrJpg, imgs))
     img_paths = np.array([os.path.join(src, img) for img in imgs])
 
+    # arrays of predictions corresponding to the image given in img_paths
     predictions = compute_predictions(img_paths)
-    
+    # dictionary of image path keys and bbox values 
+    labeled_images = get_labels(src)
 
-    models.intersection_over_union(
+    hits = 0
 
+    # can't detect when there are incorrect predictions
+    for (img, labels) in labeled_images:
+        best_iou = 0
+        for prediction in predictions[img]:
+            iou = models.intersection_over_union(boxA, boxB)
+            best_iou = max(iou, best_iou)
+        if best_iou > 0.5:
+            hits += 1
+
+    print(f'Hits: {hits}')
     print("Metrics Complete")
 
 if __name__=='__main__':
