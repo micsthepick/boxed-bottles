@@ -7,7 +7,7 @@ from PIL import Image
 dimensions = dict()
 total_images = 0
 
-for path in glob(getcwd() + "Photos/Bottles/**/*.JPG"):
+for path in glob(getcwd() + "/Photos/Bottles/**/*.JPG"):
     img = Image.open(path)
     width, height = img.size
     dims = f"{width}x{height}"

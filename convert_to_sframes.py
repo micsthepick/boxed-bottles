@@ -16,6 +16,8 @@ def transform_bbox(bbox):
     y = bbox[1] + height/2
     return { 'x': x, 'y': y, 'width': width, 'height': height }
 
+
+
 def import_annotations(images, annotations):
     a = []
     for _ in range(len(images)):
@@ -31,31 +33,49 @@ def import_annotations(images, annotations):
 
     return tc.SArray(a)
 
-def path_for_image_name(name):
-    return os.path.dirname(dataset_dir) + '/' + name
+def resize_img(row):
+    return tc.image_analysis.resize(row['image'], 1024, 768)
 
-def import_images(images):
+def resize_bbox(row):
+     coordinates = row['annotations']
+     n = []
+     for c in coordinates:
+         coordinate = c['coordinates']
+         img = row['image']
+         # transform 3264x2448 -> 1024x768
+         x = coordinate['x']/img.width * 1024
+         y = coordinate['y']/img.height * 768
+         width = coordinate['width']/img.width * 1024
+         height = coordinate['height']/img.height * 768
+         n.append({'coordinates': {'x': x, 'y': y, 'width': width, 'height': height }, 'label': 'bottle'})
+     return n
+
+def path_for_image_name(d, name):
+    return os.path.dirname(d) + '/' + name
+
+def import_images(d, images):
     images = sorted(images, key=lambda img: img['id'])
     image_ids = [i['id'] for i in images]
     file_name = [i['file_name'] for i in images]
-    imgs = [tc.Image(path_for_image_name(i['file_name'])) for i in images]
+    imgs = [tc.Image(path_for_image_name(d, i['file_name'])) for i in images]
     return tc.SFrame( {
         'id': tc.SArray(image_ids),
         'file_name': tc.SArray(file_name),
         'image': tc.SArray(imgs)
         })
 
+def import_as_sframe(path):
+    data = read(path)
+    images = import_images(path, data['images'])
+    annotations = import_annotations(images, data['annotations'])
+    frames = images.add_column(annotations, 'annotations')
+    return frames
+
 if __name__=='__main__':
     if len(sys.argv) == 3:
         path = sys.argv[1]
-        data = read(path)
-        dataset_dir = path
-
-        images = import_images(data['images'])
-        annotations = import_annotations(images, data['annotations'])
-        frames = images.add_column(annotations, 'annotations')
+        frames = import_as_sframe(path)
         frames.save(sys.argv[2])
-
     else:
         print(f"error: invalid command")
         print(f"{sys.argv[0]}: <path to dataset.json> <sframes output dir>")

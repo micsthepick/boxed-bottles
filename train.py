@@ -2,6 +2,8 @@
 import turicreate as tc
 import sys
 
+# usage: <iterations> <sframes_path> <output_model_path>
+
 if len(sys.argv) != 4:
     print("invalid arguments")
     sys.exit(-1)
