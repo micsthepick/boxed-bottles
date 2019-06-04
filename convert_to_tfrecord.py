@@ -6,31 +6,34 @@ import random
 import os.path
 import tensorflow as tf
 from object_detection.utils import dataset_util
+from PIL import Image
 
 def read(path):
     with open(path) as f:
         return json.loads(f.read())
 
 def transform_bbox(bbox):
-    width = bbox[2]
-    height = bbox[3]
-    x_min, y_min = bbox[:2]
-    x_max = x_min + width
-    y_max = y_min + height
-    return x_min, x_max, y_min, y_max
+##    width = bbox[2]
+##    height = bbox[3]
+##    x_min, y_min = bbox[:2]
+##    x_max = x_min + width
+##    y_max = y_min + height
+##    return x_min, x_max, y_min, y_max
+    return bbox[0], bbox[4], bbox[1], bbox[5]
 
 
 def path_for_image_name(name):
     return os.path.dirname(dataset_dir) + '/' + name
 
 def create_tf_example(image, annotations):
-    height = image['height']
-    width = image['width']
     file = image['file_name']
     filename = bytes(file, 'utf-8')
     with open('./datasets/512x384/'+file, 'rb') as f:
         encoded_image_data = f.read()
     image_format = b'jpeg'
+    with Image.open('./datasets/512x384/'+file) as im:
+        width, height = im.size
+    print(file, width, height)
 
     xmins = []
     xmaxs = []
@@ -41,7 +44,9 @@ def create_tf_example(image, annotations):
     classes = []
 
     for annot in annotations:
-        x_min, x_max, y_min, y_max = transform_bbox(annot['bbox'])
+        x_min, x_max, y_min, y_max = transform_bbox(*annot['segmentation'])
+        if image['id'] == 223:
+            print(x_min, x_max, y_min, y_max)
         xmins.append(x_min/width)
         xmaxs.append(x_max/width)
         ymins.append(y_min/height)
@@ -72,15 +77,25 @@ dataset_dir = './datasets/512x384/'
 examples = []
 
 images = data['images']
-id_ = None
+a = [[] for _ in range(len(images))]
+
 this = []
+id_ = None
 for annot in data['annotations']:
-    if annot['id'] != id_:
-        id_ = annot['id']
+    if annot['ignore'] == 1:
+        print('ignore')
+        continue
+    if annot['image_id'] != id_:
         if this:
             examples.append(create_tf_example(data['images'][id_-1], this))
-            this = []
+        this = [annot]
+        id_ = annot['image_id']
+        if id_ == 223:
+            print(annot)
+            print(data['images'][id_-1])
     else:
+        if id_ == 223:
+            print(annot)
         this.append(annot)
 
 rand = list(examples)
